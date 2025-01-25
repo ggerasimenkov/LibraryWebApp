@@ -1,0 +1,15 @@
+@model LibraryWebApp.Models.Book
+
+@{
+    ViewData["Title"] = "Подробности о книге";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div>
+    <p><strong>Id:</strong> @Model.Id</p>
+    <p><strong>Название:</strong> @Model.Title</p>
+    <p><strong>Автор:</strong> @Model.Author</p>
+    <p><strong>Год:</strong> @Model.Year</p>
+</div>
+<a asp-action="Index" class="btn btn-secondary">Назад</a>
