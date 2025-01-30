@@ -3,14 +3,8 @@ using LibraryWebApp.Models;
 
 namespace LibraryWebApp.Data
 {
-    public class LibraryContext : DbContext
+    public class LibraryContext(DbContextOptions<LibraryContext> options) : DbContext(options)
     {
-        public LibraryContext(DbContextOptions<LibraryContext> options)
-            : base(options)
-        {
-        }
-
-        // Набор сущностей "Books", маппится на таблицу в базе (или в InMemory-хранилище)
         public DbSet<Book> Books { get; set; }
     }
 }

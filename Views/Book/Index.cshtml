@@ -1,39 +1,166 @@
-@model IEnumerable<LibraryWebApp.Models.Book>
-
 @{
     ViewData["Title"] = "Список книг";
 }
 
-<h1>@ViewData["Title"]</h1>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@ViewData["Title"]</title>
 
-<p>
-    <a asp-controller="Book" asp-action="Create">Добавить книгу</a>
-</p>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<table class="table">
-    <thead>
-    <tr>
-        <th>Id</th>
-        <th>Название</th>
-        <th>Автор</th>
-        <th>Год</th>
-        <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var book in Model)
-    {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+    <h2 class="text-center">📚 Список книг</h2>
+
+    <button id="btnAdd" class="btn btn-primary my-3" data-bs-toggle="modal" data-bs-target="#bookModal">Добавить книгу</button>
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
         <tr>
-            <td>@book.Id</td>
-            <td>@book.Title</td>
-            <td>@book.Author</td>
-            <td>@book.Year</td>
-            <td>
-                <a asp-action="Details" asp-route-id="@book.Id">Подробнее</a> |
-                <a asp-action="Edit" asp-route-id="@book.Id">Изменить</a> |
-                <a asp-action="Delete" asp-route-id="@book.Id">Удалить</a>
-            </td>
+            <th>Название</th>
+            <th>Автор</th>
+            <th>Год</th>
+            <th>Действия</th>
         </tr>
-    }
-    </tbody>
-</table>
+        </thead>
+        <tbody id="booksTable">
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="bookModal" tabindex="-1" aria-labelledby="bookModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookModalLabel">Добавить книгу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bookId">
+                <div class="mb-3">
+                    <label class="form-label">Название:</label>
+                    <input type="text" id="title" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Автор:</label>
+                    <input type="text" id="author" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Год:</label>
+                    <input type="number" id="year" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button id="saveBook" class="btn btn-success">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        loadBooks();
+
+        function loadBooks() {
+            $.get("/api/books", function (data) {
+                let rows = "";
+                data.forEach(book => {
+                    rows += `
+                        <tr data-id="${book.id}">
+                            <td>${book.title}</td>
+                            <td>${book.author}</td>
+                            <td>${book.year}</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm edit">✏️ Редактировать</button>
+                                <button class="btn btn-danger btn-sm delete">🗑 Удалить</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                $("#booksTable").html(rows);
+            });
+        }
+
+        $("#btnAdd").click(function () {
+            $("#bookId").val("");
+            $("#title").val("");
+            $("#author").val("");
+            $("#year").val("");
+            $("#bookModalLabel").text("Добавить книгу");
+        });
+
+        $("#saveBook").click(function () {
+            let book = {
+                id: $("#bookId").val(),
+                title: $("#title").val(),
+                author: $("#author").val(),
+                year: $("#year").val()
+            };
+
+            if (book.id) {
+                $.ajax({
+                    url: "/api/books/" + book.id,
+                    type: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify(book),
+                    success: function () {
+                        loadBooks();
+                        $("#bookModal").modal("hide");
+                    }
+                });
+            } else {
+                $.ajax({
+                    url: "/api/books",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(book),
+                    success: function () {
+                        loadBooks();
+                        $("#bookModal").modal("hide");
+                    }
+                });
+            }
+        });
+
+        $(document).on("click", ".edit", function () {
+            let row = $(this).closest("tr");
+            let id = row.data("id");
+
+            $.get("/api/books/" + id, function (book) {
+                $("#bookId").val(book.id);
+                $("#title").val(book.title);
+                $("#author").val(book.author);
+                $("#year").val(book.year);
+                $("#bookModalLabel").text("Редактировать книгу");
+                $("#bookModal").modal("show");
+            });
+        });
+
+        $(document).on("click", ".delete", function () {
+            let row = $(this).closest("tr");
+            let id = row.data("id");
+
+            if (confirm("Удалить эту книгу?")) {
+                $.ajax({
+                    url: "/api/books/" + id,
+                    type: "DELETE",
+                    success: function () {
+                        loadBooks();
+                    }
+                });
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
